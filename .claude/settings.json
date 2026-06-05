@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git --version)",
+      "Bash(cmd /c \"systeminfo | findstr /C:\\\\\"OS\\\\\" /C:\\\\\"Version\\\\\" /C:\\\\\"System Type\\\\\" 2>nul\")",
+      "Bash(cmd /c \"dir /b \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\\"\")",
+      "Bash(cmd /c \"dir /b \\\\\"C:\\\\Program Files \\(x86\\)\\\\Windows Kits\\\\10\\\\Include\\\\\"\")",
+      "Read(//c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/**)",
+      "Read(//c/Program Files \\(x86\\)/Windows Kits/10/Include/**)",
+      "Bash(code --version)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" FaceGuard.sln /p:Configuration=Release /p:Platform=x64 /t:Build)",
+      "Bash(\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\" FaceGuard.sln /p:Configuration=\"Release\" /p:Platform=\"x64\" /t:Build)",
+      "Bash(cmd /c \"cd /d C:\\\\FaceGuard && \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\\\\\" FaceGuard.sln /p:Configuration=Release /p:Platform=x64 /t:Build /v:minimal\")",
+      "Bash(cmd /c \"\\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\\\\\" /version\")",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln /t:Build /p:Configuration=Release /p:Platform=x64 /v:minimal)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln /p:Configuration=Release /p:Platform=x64 /t:Build /v:minimal)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Build -v:minimal)",
+      "Bash(cmd /c \"call \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\VC\\\\Auxiliary\\\\Build\\\\vcvarsall.bat\\\\\" x64 && cd /d C:\\\\FaceGuard && \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\\\\\" FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Build -v:minimal\")",
+      "Bash(cmd.exe /c \"call \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\VC\\\\Auxiliary\\\\Build\\\\vcvarsall.bat\\\\\" x64 >nul 2>&1 && \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\\\\\" C:\\\\FaceGuard\\\\FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Build -v:minimal\")",
+      "Bash(MSYS_NO_PATHCONV=1 cmd //c \"call \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\VC\\\\Auxiliary\\\\Build\\\\vcvarsall.bat\\\\\" x64 >nul 2>&1 && \\\\\"C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe\\\\\" C:\\\\\\\\FaceGuard\\\\\\\\FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Build -v:minimal\")",
+      "Bash(powershell -Command \"& 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\Common7\\\\Tools\\\\Launch-VsDevShell.ps1' -SkipAutomaticLocation; & 'C:\\\\Program Files \\(x86\\)\\\\Microsoft Visual Studio\\\\2017\\\\Professional\\\\MSBuild\\\\15.0\\\\Bin\\\\MSBuild.exe' 'C:\\\\FaceGuard\\\\FaceGuard.sln' -p:Configuration=Release -p:Platform=x64 -t:Build -v:minimal\")",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Clean -v:minimal)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Build -v:detailed)",
+      "Bash(find \"/c/Program Files \\(x86\\)/Windows Kits/10/Lib/10.0.19041.0/\" -maxdepth 2 -type d 2>/dev/null)",
+      "Read(//c/Program Files \\(x86\\)/Windows Kits/10/Lib/10.0.19041.0//**)",
+      "Bash(sed -i '150,157s|$\\(ProjectDir\\)third_party\\\\\\\\\\\\\\\\opencv\\\\\\\\\\\\\\\\lib;%\\(AdditionalLibraryDirectories\\)|$\\(ProjectDir\\)third_party\\\\\\\\\\\\\\\\opencv\\\\\\\\\\\\\\\\lib;$\\(MSVCLibPath\\)\\\\\\\\\\\\\\\\x86;$\\(ATLMFCLibPath\\)\\\\\\\\\\\\\\\\x86;$\\(SDKLibPath\\)\\\\\\\\\\\\\\\\ucrt\\\\\\\\\\\\\\\\x86;$\\(SDKLibPath\\)\\\\\\\\\\\\\\\\um\\\\\\\\\\\\\\\\x86;%\\(AdditionalLibraryDirectories\\)|' FaceGuard.vcxproj)",
+      "Bash(sed -i '170,177s|$\\(ProjectDir\\)third_party\\\\\\\\\\\\\\\\opencv\\\\\\\\\\\\\\\\lib;%\\(AdditionalLibraryDirectories\\)|$\\(ProjectDir\\)third_party\\\\\\\\\\\\\\\\opencv\\\\\\\\\\\\\\\\lib;$\\(MSVCLibPath\\)\\\\\\\\\\\\\\\\x64;$\\(ATLMFCLibPath\\)\\\\\\\\\\\\\\\\x64;$\\(SDKLibPath\\)\\\\\\\\\\\\\\\\ucrt\\\\\\\\\\\\\\\\x64;$\\(SDKLibPath\\)\\\\\\\\\\\\\\\\um\\\\\\\\\\\\\\\\x64;%\\(AdditionalLibraryDirectories\\)|' FaceGuard.vcxproj)",
+      "Bash(\"/c/Program Files \\(x86\\)/Microsoft Visual Studio/2017/Professional/MSBuild/15.0/Bin/MSBuild.exe\" FaceGuard.sln -p:Configuration=Release -p:Platform=x64 -t:Clean -v:q)",
+      "Bash(dumpbin /exports /c/FaceGuard/third_party/opencv/lib/opencv_world430.lib)"
+    ]
+  }
+}

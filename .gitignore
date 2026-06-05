@@ -1,0 +1,10 @@
+*\FaceGuard\bin\*
+*.vcxproj.filters
+*.vcxproj.user
+*.obj
+*.ipch
+*.ipdb
+*.idb
+*.tlog
+*.dll
+*.lib

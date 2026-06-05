@@ -1,0 +1,227 @@
+// Microsoft Visual C++ generated resource script.
+//
+#include "afxres.h"
+#include "resource.h"
+/////////////////////////////////////////////////////////////////////////////
+// ����(���壬�й�) resources
+
+#if !defined(AFX_RESOURCE_DLL) || defined(AFX_TARG_CHS)
+LANGUAGE LANG_CHINESE, SUBLANG_CHINESE_SIMPLIFIED
+#pragma code_page(936)
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Icon
+//
+
+// Icon with lowest ID value placed first to ensure application icon
+// remains consistent on all systems.
+IDR_MAINFRAME           ICON                    "..\\res\\faceguard.ico"
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Dialog
+//
+
+IDD_DLG_LOGIN DIALOGEX 0, 0, 320, 155
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "FaceGuard - Login"
+FONT 9, "Microsoft YaHei", 400, 0, 0x1
+BEGIN
+    LTEXT           "Username:",IDC_STATIC,50,40,50,14
+    EDITTEXT        IDC_EDIT_USERNAME,110,37,160,14,ES_AUTOHSCROLL
+    LTEXT           "Password:",IDC_STATIC,50,70,50,14
+    EDITTEXT        IDC_EDIT_PASSWORD,110,67,160,14,ES_PASSWORD | ES_AUTOHSCROLL
+    PUSHBUTTON      "Login",IDC_BTN_LOGIN,90,95,60,25
+    PUSHBUTTON      "Exit",IDC_BTN_LOGIN_EXIT,170,95,60,25
+    CTEXT           "Default: admin / admin",IDC_STATIC_LOGIN_INFO,50,135,220,14
+END
+
+IDD_DLG_PASSWORD DIALOGEX 0, 0, 350, 186
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "FaceGuard - Change Password"
+FONT 9, "Microsoft YaHei", 400, 0, 0x1
+BEGIN
+    LTEXT           "Old Password:",IDC_STATIC,55,30,60,14
+    EDITTEXT        IDC_EDIT_OLD_PASSWORD,125,27,160,14,ES_PASSWORD | ES_AUTOHSCROLL
+    LTEXT           "New Password:",IDC_STATIC,55,60,60,14
+    EDITTEXT        IDC_EDIT_NEW_PASSWORD,125,57,160,14,ES_PASSWORD | ES_AUTOHSCROLL
+    LTEXT           "Confirm:",IDC_STATIC,55,90,60,14
+    EDITTEXT        IDC_EDIT_CONFIRM_PASSWORD,125,87,160,14,ES_PASSWORD | ES_AUTOHSCROLL
+    PUSHBUTTON      "Save",IDC_BTN_SAVE_PASSWORD,100,130,70,25
+    PUSHBUTTON      "Cancel",IDC_BTN_CANCEL_PASSWORD,180,130,70,25
+    CTEXT           "Min 6 chars, letters and digits.",IDC_STATIC_PWD_INFO,40,170,270,14
+END
+
+IDD_DLG_FACE DIALOGEX 0, 0, 480, 291
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "FaceGuard - Face Registration"
+FONT 9, "Microsoft YaHei", 400, 0, 0x1
+BEGIN
+    CONTROL         "",IDC_STATIC_PREVIEW,"Static",SS_BITMAP | SS_CENTERIMAGE,15,15,320,240
+    CTEXT           "Registered: 0 / 3",IDC_STATIC_FACE_COUNT,350,20,120,14
+    PUSHBUTTON      "Capture",IDC_BTN_SNAPSHOT,350,50,110,30
+    PUSHBUTTON      "Done",IDC_BTN_FACE_COMPLETE,350,100,110,30
+    CTEXT           "Look straight at the camera in good light.",IDC_STATIC_FACE_INFO,15,265,450,14
+    PUSHBUTTON      "X",IDC_BTN_DELETE_FACE1,350,160,30,20
+    PUSHBUTTON      "X",IDC_BTN_DELETE_FACE2,390,160,30,20
+    PUSHBUTTON      "X",IDC_BTN_DELETE_FACE3,430,160,30,20
+END
+
+IDD_DLG_ALERT DIALOGEX 0, 0, 450, 328
+STYLE DS_SETFONT | DS_MODALFRAME | DS_CENTER | WS_POPUP | WS_CAPTION | WS_SYSMENU
+CAPTION "FaceGuard - Intruder Alert"
+FONT 9, "Microsoft YaHei", 400, 0, 0x1
+BEGIN
+    CTEXT           "Intruder records: 0",IDC_STATIC_ALERT_INFO,15,10,420,14
+    CONTROL         "",IDC_LIST_INTRUDERS,"SysListView32",LVS_REPORT | WS_BORDER | WS_TABSTOP,15,30,420,250
+    PUSHBUTTON      "View",IDC_BTN_CLOSE_ALERT,150,295,70,25
+    PUSHBUTTON      "Clear",IDC_BTN_CLEAR_LOG,240,295,70,25
+    PUSHBUTTON      "Close",IDOK,330,295,70,25
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// Version
+//
+
+VS_VERSION_INFO VERSIONINFO
+ FILEVERSION 1,0,0,0
+ PRODUCTVERSION 1,0,0,0
+ FILEFLAGSMASK 0x3fL
+#ifdef _DEBUG
+ FILEFLAGS 0x1L
+#else
+ FILEFLAGS 0x0L
+#endif
+ FILEOS 0x40004L
+ FILETYPE 0x1L
+ FILESUBTYPE 0x0L
+BEGIN
+    BLOCK "StringFileInfo"
+    BEGIN
+        BLOCK "080404B0"
+        BEGIN
+            VALUE "CompanyName", "FaceGuard Team"
+            VALUE "FileDescription", "FaceGuard Anti-theft Monitor"
+            VALUE "FileVersion", "1.0.0.0"
+            VALUE "InternalName", "FaceGuard.exe"
+            VALUE "LegalCopyright", "Copyright (C) 2024"
+            VALUE "OriginalFilename", "FaceGuard.exe"
+            VALUE "ProductName", "FaceGuard"
+            VALUE "ProductVersion", "1.0.0.0"
+        END
+    END
+    BLOCK "VarFileInfo"
+    BEGIN
+        VALUE "Translation", 0x804, 1200
+    END
+END
+
+
+#ifdef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// TEXTINCLUDE
+//
+
+1 TEXTINCLUDE 
+BEGIN
+    "resource.h\0"
+END
+
+2 TEXTINCLUDE
+BEGIN
+    "afxres.h\0"
+END
+
+3 TEXTINCLUDE 
+BEGIN
+    "\r\n"
+    "\0"
+END
+
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// DESIGNINFO
+//
+
+#ifdef APSTUDIO_INVOKED
+GUIDELINES DESIGNINFO
+BEGIN
+    IDD_DLG_LOGIN, DIALOG
+    BEGIN
+    END
+
+    IDD_DLG_PASSWORD, DIALOG
+    BEGIN
+    END
+
+    IDD_DLG_FACE, DIALOG
+    BEGIN
+    END
+
+    IDD_DLG_ALERT, DIALOG
+    BEGIN
+    END
+END
+#endif    // APSTUDIO_INVOKED
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// AFX_DIALOG_LAYOUT
+//
+
+IDD_DLG_PASSWORD AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DLG_LOGIN AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DLG_FACE AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+IDD_DLG_ALERT AFX_DIALOG_LAYOUT
+BEGIN
+    0
+END
+
+
+/////////////////////////////////////////////////////////////////////////////
+//
+// String Table
+//
+
+STRINGTABLE
+BEGIN
+    IDS_APP_TITLE           "FaceGuard"
+    IDS_APP_COMPANY         "FaceGuard Team"
+END
+
+#endif    // ����(���壬�й�) resources
+/////////////////////////////////////////////////////////////////////////////
+
+
+
+#ifndef APSTUDIO_INVOKED
+/////////////////////////////////////////////////////////////////////////////
+//
+// Generated from the TEXTINCLUDE 3 resource.
+//
+
+
+/////////////////////////////////////////////////////////////////////////////
+#endif    // not APSTUDIO_INVOKED
+
