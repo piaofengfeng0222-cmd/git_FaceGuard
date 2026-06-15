@@ -15,7 +15,7 @@
 
 ## 一、上下文
 
-**项目背景**：开发一款基于人脸识别的 Windows 桌面防窥监控软件。当用户离开电脑时，程序自动通过摄像头定时抓拍，比对当前操作者是否为合法用户；发现非法用户时告警并强制关机，记录非法使用证据。
+**项目背景**：开发一款基于人脸识别的 Windows 桌面防窥监控软件。当用户离开电脑时，程序自动通过摄像头定时抓拍，比对当前操作者是否为合法用户；发现非法用户时告警并强制锁定电脑屏幕‌，并记录非法使用证据。
 
 **开发环境**（自动检测结果）：
 | 项目 | 版本 |
@@ -115,7 +115,7 @@ NormalIntervalSeconds=60
 AlertIntervalSeconds=3
 ; 不匹配重试次数
 AlertRetryCount=5
-; 强制关机前等待时间 (秒)
+; 强制锁定电脑屏幕前等待时间 (秒)
 ShutdownDelaySeconds=60
 
 [FaceDetection]
@@ -441,7 +441,7 @@ chi2 = Σ ( (H1[i] - H2[i])² / (H1[i] + H2[i]) )
      │ 5次都不匹配
      ▼
 ┌──────────┐
-│ SHUTDOWN │ → 1分钟后强制关机
+│ SHUTDOWN │ → 1分钟后强制锁定电脑屏幕
 │ 记录入侵  │
 └──────────┘
 ```
@@ -475,8 +475,8 @@ public:
 private:
     void MonitorLoop();        // 监控主循环（在独立线程中运行）
     BOOL DoFaceCheck();        // 执行一次人脸检查
-    void ScheduleShutdown();   // 计划强制关机（获取 SE_SHUTDOWN_NAME 权限后调用 InitiateSystemShutdownEx）
-    void CancelShutdown();     // 取消已计划的关机（AbortSystemShutdown）
+    void ScheduleShutdown();   // 计划强制锁定电脑屏幕（获取 SE_SHUTDOWN_NAME 权限后调用 InitiateSystemShutdownEx）
+    void CancelShutdown();     // 取消已计划的锁定电脑屏幕（AbortSystemShutdown）
     void LogIntruder(const cv::Mat& faceImage, BOOL bShutdown);  // 记录入侵证据
     CString GetCurrentTimeString();
 
@@ -547,7 +547,7 @@ while (m_bRunning) {
        └─ 若 m_retryCount >= m_nAlertRetryCount：
            ├─ m_state = SHUTDOWN, m_bRunning = FALSE
            ├─ LogIntruder(faceROI, TRUE)
-           ├─ PostMessage WM_INTRUDER_ALERT(1) 触发关机UI
+           ├─ PostMessage WM_INTRUDER_ALERT(1) 触发锁定电脑屏幕UI
            └─ ScheduleShutdown()
 ```
 
@@ -558,7 +558,7 @@ while (m_bRunning) {
 |---------|--------|--------|------|
 | `WM_FACE_DETECTED` | 1=匹配 / 0=不匹配 | 重试次数 | 人脸比对结果通知 |
 | `WM_MONITOR_UPDATE` | MonitorState 枚举值 | 重试次数 | 监控状态变化通知（主要用于 ALERT 状态） |
-| `WM_INTRUDER_ALERT` | 1=触发关机 / 0=用户回归 | 0 | 非法用户确认或合法用户回归通知 |
+| `WM_INTRUDER_ALERT` | 1=触发锁定电脑屏幕 / 0=用户回归 | 0 | 非法用户确认或合法用户回归通知 |
 
 ---
 
@@ -712,12 +712,12 @@ void CDlgFace::OnTimer(UINT_PTR nIDEvent)
 │                                                          │
 │  共检测到 N 次非法访问！                                   │
 │                                                          │
-│  ┌──────┬────────────────────┬──────┬──────────────────┐ │
-│  │ 序号 │      抓拍时间        │ 关机  │    缩略图路径     │ │
-│  ├──────┼────────────────────┼──────┼──────────────────┤ │
-│  │  1   │ 2026-06-03 14:30   │  否  │ thumb_xxx.jpg   │ │
-│  │  2   │ 2026-06-03 14:30   │  是  │ thumb_xxx.jpg   │ │
-│  └──────┴────────────────────┴──────┴──────────────────┘ │
+│  ┌──────┬────────────────────┬──────────────┬─────────────────┐ │
+│  │  序号 │      抓拍时间       │  锁定电脑屏幕  │     缩略图路径    │ │
+│  ├──────┼────────────────────┼──────────────┼─────────────────┤ │
+│  │  1   │ 2026-06-03 14:30   │       否     │ thumb_xxx.jpg   │ │
+│  │  2   │ 2026-06-03 14:30   │       是     │ thumb_xxx.jpg   │ │
+│  └──────┴────────────────────┴───────────── ┴─────────────────┘ │
 │                                                          │
 │  [  查看详情  ]  [  清除记录  ]  [  关闭  ]               │
 └──────────────────────────────────────────────────────────┘
@@ -727,7 +727,7 @@ void CDlgFace::OnTimer(UINT_PTR nIDEvent)
 
 **逻辑**：
 - 从 `intruder_log` 表按时间倒序读取所有记录
-- 通过 `CListCtrl` 四列显示：序号 | 抓拍时间 | 是否触发关机 | 缩略图路径
+- 通过 `CListCtrl` 四列显示：序号 | 抓拍时间 | 是否触发锁定电脑屏幕 | 缩略图路径
 - **查看详情**：选中列表行后，通过 `ShellExecute` 调用系统默认图片查看器打开原图
 - **清除记录**：弹窗确认后调用 `DeleteAllIntruderLogs()` 清除数据库记录，刷新列表
 - **关闭**：关闭对话框
@@ -855,7 +855,7 @@ private:
 | `WM_FACE_DETECTED` (wParam=1) | 更新托盘提示为"监控中 ✓" |
 | `WM_FACE_DETECTED` (wParam=0) | 更新托盘提示为"⚠ 可疑人员 (N/5)" |
 | `WM_MONITOR_UPDATE` (ALERT) | 弹出气泡提示"检测到可疑人员" |
-| `WM_INTRUDER_ALERT` (wParam=1) | 弹出气泡提示 + 打开 CDlgAlert（触发关机） |
+| `WM_INTRUDER_ALERT` (wParam=1) | 弹出气泡提示 + 打开 CDlgAlert（触发锁定电脑屏幕） |
 | `WM_INTRUDER_ALERT` (wParam=0) | 弹出气泡提示 + 打开 CDlgAlert（用户回归查看记录） |
 
 ---
@@ -948,7 +948,7 @@ COM 反初始化 (CoUninitialize)
 │                    ┌─────▼──┐  ┌────▼─────────┐                   │
 │                    │继续监控 │  │ 每3秒重试5次  │                   │
 │                    │(如有非法 │  │ 记录非法用户  │                   │
-│                    │ 记录则   │  │ 强制关机      │                   │
+│                    │ 记录则   │  │ 强制锁定电脑屏幕      │                   │
 │                    │ 弹窗告警)│  └──────────────┘                   │
 │                    └─────────┘                                     │
 └──────────────────────────────────────────────────────────────────┘
@@ -1021,7 +1021,7 @@ FaceGuard/
 | `DEFAULT_NORMAL_INTERVAL_SECONDS` | `60` | 默认正常抓拍间隔 |
 | `DEFAULT_ALERT_INTERVAL_SECONDS` | `3` | 默认告警抓拍间隔 |
 | `DEFAULT_ALERT_RETRY_COUNT` | `5` | 默认告警重试次数 |
-| `DEFAULT_SHUTDOWN_DELAY_SECONDS` | `60` | 默认关机延迟 |
+| `DEFAULT_SHUTDOWN_DELAY_SECONDS` | `60` | 默认锁定电脑屏幕延迟 |
 | `DEFAULT_MIN_FACE_WIDTH` | `50` | 默认最小人脸宽度 |
 | `DEFAULT_MIN_FACE_HEIGHT` | `50` | 默认最小人脸高度 |
 | `DEFAULT_MIN_NEIGHBORS` | `2` | 默认 Haar Cascade 最小邻居数 |
@@ -1034,7 +1034,7 @@ FaceGuard/
 | `WM_TRAY_NOTIFY` | `WM_USER + 100` | 系统托盘图标事件通知 |
 | `WM_MONITOR_UPDATE` | `WM_USER + 101` | 监控状态变化通知（wParam=MonitorState, lParam=重试次数） |
 | `WM_FACE_DETECTED` | `WM_USER + 102` | 人脸比对结果通知（wParam: 1=匹配/0=不匹配） |
-| `WM_INTRUDER_ALERT` | `WM_USER + 103` | 非法用户告警（wParam: 1=触发关机/0=用户回归） |
+| `WM_INTRUDER_ALERT` | `WM_USER + 103` | 非法用户告警（wParam: 1=触发锁定电脑屏幕/0=用户回归） |
 
 ### 5.3 托盘菜单命令
 
@@ -1068,7 +1068,7 @@ FaceGuard/
 | 定时器（UI预览） | MFC CWnd::SetTimer + WM_TIMER | 双定时器：50ms 预览刷新 + 800ms 抓拍比对。UI 线程内执行，可直接操作控件 |
 | 定时器（监控循环） | std::thread + 1秒粒度轮询 | 确保 Stop() 调用后最迟 1 秒内退出循环 |
 | 跨线程通信 | Windows PostMessage + 自定义消息 | 监控线程 → UI 线程：WM_FACE_DETECTED / WM_MONITOR_UPDATE / WM_INTRUDER_ALERT |
-| 强制关机 | InitiateSystemShutdownEx | Windows API，支持延迟关机和原因记录 |
+| 强制锁定电脑屏幕 | InitiateSystemShutdownEx | Windows API，支持延迟锁定电脑屏幕和原因记录 |
 | 主窗口策略 | 隐藏 CFrameWnd + 托盘图标 | 窗口使用 WS_EX_TOOLWINDOW 不显示在任务栏 |
 | 无脸抓拍 | 保存至 `noface/` 目录 | 无人脸场景仍抓拍留证，记录"无人使用"时间段的证据 |
 
@@ -1090,7 +1090,7 @@ FaceGuard/
 | 已录入人脸特征解密失败 | 跳过该条记录，继续比对下一条 |
 | 定时器创建失败 | 输出 Debug 日志，预览/抓拍功能静默降级（不弹错误框） |
 | 加密密钥丢失 | 重新生成密钥（原有数据不可恢复，提示用户重新录入人脸） |
-| 强制关机倒计时 | 提供取消按钮（需输入合法用户密码） |
+| 强制锁定电脑屏幕倒计时 | 提供取消按钮（需输入合法用户密码） |
 | Haar Cascade 模型文件未找到 | 弹窗告警，人脸检测不可用但摄像头仍可抓拍 |
 | COM 初始化失败 | InitInstance 中检查返回值，失败时退出程序 |
 | 配置项缺失 | `EnsureDefaults()` 自动补全所有 `[General]` 和 `[FaceDetection]` 节默认值 |
@@ -1136,7 +1136,7 @@ FaceGuard/
 6. **双定时器验证**：打开人脸录入对话框，验证预览流畅（~20fps）且抓拍比对定时触发（每800ms）
 7. **实时比对验证**：坐在摄像头前，验证实时显示与已录入人脸的最佳匹配结果和相似距离
 8. **人脸识别验证**：合法用户坐在摄像头前，验证每 60 秒自动识别通过
-9. **非法用户检测**：换人坐在摄像头前，验证 3 秒抓拍 × 5 次后触发关机倒计时
+9. **非法用户检测**：换人坐在摄像头前，验证 3 秒抓拍 × 5 次后触发锁定电脑屏幕倒计时
 10. **无脸抓拍验证**：无人在摄像头前时，验证 `noface/` 目录下有按时间戳命名的抓拍图像
 11. **入侵证据验证**：非法用户检测后，验证 `intruders/` 和 `thumbnails/` 目录下有对应图像文件
 12. **系统托盘验证**：验证窗口隐藏、托盘图标显示、右键菜单功能（5 个菜单项）
