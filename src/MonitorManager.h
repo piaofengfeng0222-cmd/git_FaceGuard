@@ -1,6 +1,6 @@
 // MonitorManager.h
 // 监控管理模块——核心监控逻辑
-// 负责定时抓拍、人脸比对、状态切换、非法用户检测和关机调度
+// 负责定时抓拍、人脸比对、状态切换、非法用户检测和锁屏调度
 //
 // 状态机：
 //   NORMAL (60s间隔) ──不匹配──→ ALERT (3s间隔×5次)
@@ -8,7 +8,7 @@
 //     └─────匹配──────────────────────┘
 //                                    │ 5次都不匹配
 //                                    ↓
-//                                 SHUTDOWN (1分钟后强制关机)
+//                                 SHUTDOWN (立即锁屏)
 
 #pragma once
 
@@ -78,11 +78,14 @@ private:
     // 执行一次完整的人脸检查流程
     BOOL DoFaceCheck();
 
-    // 执行强制关机
-    void ScheduleShutdown();
+    // 锁定工作站
+    void LockWorkStation();
 
-    // 取消强制关机（如果用户及时回来）
-    void CancelShutdown();
+    // 安排延迟锁屏（倒计时结束后执行锁屏）
+    void ScheduleLock(int nDelaySeconds);
+
+    // 取消延迟锁屏
+    void CancelScheduleLock();
 
     // 记录非法用户信息
     void LogIntruder(const cv::Mat& faceImage, BOOL bShutdown);
@@ -104,7 +107,7 @@ private:
     int m_nNormalInterval;
     int m_nAlertInterval;
     int m_nAlertRetryCount;
-    int m_nShutdownDelay;
+    int m_nLockDelaySeconds;        // 锁屏延迟秒数（5次失败后倒计时）
 
     // 回调函数
     std::function<void()> m_onFaceMatch;

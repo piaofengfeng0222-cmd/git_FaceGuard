@@ -372,7 +372,20 @@ std::vector<BYTE> CCryptoManager::DecryptData(const BYTE* pData, size_t nSize)
         BYTE nPaddingLen = result.back();
         if (nPaddingLen > 0 && nPaddingLen <= BLOCK_SIZE && nPaddingLen <= result.size())
         {
-            result.resize(result.size() - nPaddingLen);
+            // 验证所有填充字节是否相同（PKCS#7 规范要求）
+            BOOL bValidPadding = TRUE;
+            for (size_t i = result.size() - nPaddingLen; i < result.size(); ++i)
+            {
+                if (result[i] != nPaddingLen)
+                {
+                    bValidPadding = FALSE;
+                    break;
+                }
+            }
+            if (bValidPadding)
+            {
+                result.resize(result.size() - nPaddingLen);
+            }
         }
     }
 

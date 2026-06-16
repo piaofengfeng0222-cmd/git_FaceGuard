@@ -37,7 +37,7 @@
 #include <shlwapi.h>        // PathFileExists, PathRemoveFileSpec
 #include <wincrypt.h>       // CryptoAPI
 #include <bcrypt.h>         // AES 加密 (CNG)
-#include <powrprof.h>       // 关机权限
+#include <powrprof.h>       // 电源管理（预留）
 #include <winreg.h>         // 注册表操作
 #include <tlhelp32.h>       // 进程快照
 

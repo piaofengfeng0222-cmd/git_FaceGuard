@@ -84,8 +84,8 @@ BOOL CCameraManager::Initialize(int nCameraIndex)
     }
 
     CString strCascadePaths[] = {
-        strExeDir + _T("\\haarcascade_frontalface_default.xml"),
-        strExeDir + _T("\\res\\haarcascade_frontalface_default.xml")
+        strExeDir + _T("\\faceguard.xml"),
+        strExeDir + _T("\\res\\faceguard.xml")
     };
 
     BOOL bCascadeLoaded = FALSE;
@@ -103,10 +103,10 @@ BOOL CCameraManager::Initialize(int nCameraIndex)
     if (!bCascadeLoaded)
     {
         // 模型文件未找到——摄像头可用但人脸检测不可用
-        OutputDebugString(_T("CameraManager: 未找到 haarcascade_frontalface_default.xml 模型文件\n"));
+        OutputDebugString(_T("CameraManager: 未找到 faceguard.xml 模型文件\n"));
         ::MessageBox(nullptr,
                      _T("FaceGuard 未能加载人脸检测模型文件！\n\n")
-                     _T("请确保 haarcascade_frontalface_default.xml 文件存在于以下位置之一：\n")
+                     _T("请确保 faceguard.xml 文件存在于以下位置之一：\n")
                      _T("  1) 程序所在目录\n")
                      _T("  2) 程序所在目录\\res\\\n\n")
                      _T("人脸检测功能将不可用。"),

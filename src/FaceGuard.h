@@ -14,8 +14,10 @@ public:
     CMainWnd();
     virtual ~CMainWnd();
 
-    // 初始化托盘图标（需要在窗口创建后调用）
     void InitTrayIcon();
+
+    // 重置告警对话框指针（供 CDlgAlert 窗口销毁时调用）
+    void ResetDlgAlert() { m_pDlgAlert = nullptr; }
 
 protected:
     afx_msg LRESULT OnTrayNotify(WPARAM wParam, LPARAM lParam);
@@ -35,6 +37,9 @@ private:
     void OnTrayViewLog();
     void OnTrayAbout();
     void OnTrayExit();
+
+    // 非法用户告警对话框指针（非模态，用于防止重复弹出）
+    class CDlgAlert* m_pDlgAlert;
 };
 
 // ============================================================================

@@ -51,6 +51,7 @@ END_MESSAGE_MAP()
 // CMainWnd 构造函数——创建隐藏窗口
 // ============================================================================
 CMainWnd::CMainWnd()
+    : m_pDlgAlert(nullptr)
 {
     // 注册窗口类
     LPCTSTR szClassName = AfxRegisterWndClass(0);
@@ -65,6 +66,12 @@ CMainWnd::CMainWnd()
 
 CMainWnd::~CMainWnd()
 {
+    // 关闭告警对话框
+    if (m_pDlgAlert != nullptr && ::IsWindow(m_pDlgAlert->GetSafeHwnd()))
+    {
+        m_pDlgAlert->DestroyWindow();
+    }
+    m_pDlgAlert = nullptr;
 }
 
 // ============================================================================
@@ -110,6 +117,13 @@ LRESULT CMainWnd::OnTrayNotify(WPARAM wParam, LPARAM lParam)
 // ============================================================================
 void CMainWnd::OnClose()
 {
+    // 关闭告警对话框
+    if (m_pDlgAlert != nullptr && ::IsWindow(m_pDlgAlert->GetSafeHwnd()))
+    {
+        m_pDlgAlert->DestroyWindow();
+    }
+    m_pDlgAlert = nullptr;
+
     // 销毁托盘图标
     CTrayManager::GetInstance().Destroy();
 
@@ -171,21 +185,19 @@ LRESULT CMainWnd::OnFaceDetected(WPARAM wParam, LPARAM lParam)
 }
 
 // ============================================================================
-// 非法用户告警消息处理——wParam: 1=触发关机, 0=用户回归查看记录
+// 非法用户告警消息处理——wParam: 1=触发锁屏, 0=用户回归查看记录
 // ============================================================================
 LRESULT CMainWnd::OnIntruderAlert(WPARAM wParam, LPARAM lParam)
 {
     if (wParam == 1)
     {
-        // 触发强制关机——弹出告警窗口
+        // 触发锁屏——弹出告警窗口
+        CString strMsg;
+        strMsg.Format(_T("检测到非法用户！系统已锁定。"));
         CTrayManager::GetInstance().ShowBalloonTip(
             _T("FaceGuard - 严重告警"),
-            _T("检测到非法用户！系统将在60秒后强制关机。"),
+            strMsg,
             NIIF_ERROR);
-
-        // 弹出非法用户告警窗口（模态，阻止非法用户操作）
-        CDlgAlert dlgAlert(this);
-        dlgAlert.DoModal();
     }
     else
     {
@@ -194,10 +206,25 @@ LRESULT CMainWnd::OnIntruderAlert(WPARAM wParam, LPARAM lParam)
             _T("FaceGuard"),
             _T("检测到您离开期间有非法用户操作。点击查看详情。"),
             NIIF_INFO);
-
-        CDlgAlert dlgAlert(this);
-        dlgAlert.DoModal();
     }
+
+    // 检查对话框是否已打开
+    if (m_pDlgAlert != nullptr && ::IsWindow(m_pDlgAlert->GetSafeHwnd()))
+    {
+        // 对话框已打开——刷新记录并确保窗口在前台
+        m_pDlgAlert->RefreshRecords();
+    }
+    else
+    {
+        // 对话框未打开——创建新的非模态对话框（nullptr 作为父窗口，避免隐藏窗口问题）
+        m_pDlgAlert = new CDlgAlert(nullptr);
+        m_pDlgAlert->m_pParentWnd = this;
+        m_pDlgAlert->Create(IDD_DLG_ALERT, nullptr);
+        m_pDlgAlert->SetWindowPos(&CWnd::wndTopMost, 0, 0, 0, 0,
+            SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+        m_pDlgAlert->SetForegroundWindow();
+    }
+
     return 0;
 }
 
@@ -226,8 +253,21 @@ void CMainWnd::OnTrayCheck()
 // ============================================================================
 void CMainWnd::OnTrayViewLog()
 {
-    CDlgAlert dlgAlert(this);
-    dlgAlert.DoModal();
+    // 检查对话框是否已打开
+    if (m_pDlgAlert != nullptr && ::IsWindow(m_pDlgAlert->GetSafeHwnd()))
+    {
+        // 对话框已打开——刷新记录并激活窗口
+        m_pDlgAlert->RefreshRecords();
+    }
+    else
+    {
+        // 对话框未打开——创建新的非模态对话框（nullptr 作为父窗口）
+        m_pDlgAlert = new CDlgAlert(nullptr);
+        m_pDlgAlert->m_pParentWnd = this;
+        m_pDlgAlert->Create(IDD_DLG_ALERT, nullptr);
+        m_pDlgAlert->ShowWindow(SW_SHOW);
+        m_pDlgAlert->SetForegroundWindow();
+    }
 }
 
 // ============================================================================
@@ -241,7 +281,7 @@ void CMainWnd::OnTrayAbout()
         _T("功能：\n")
         _T("  - 人脸录入与识别\n")
         _T("  - 非法用户检测与告警\n")
-        _T("  - 自动关机保护\n\n")
+        _T("  - 自动锁屏保护\n\n")
         _T("运行时请保持摄像头连接。"),
         MB_ICONINFORMATION);
 }

@@ -5,7 +5,7 @@
 //   1. NORMAL 状态：每 60 秒抓拍一次，检测人脸并与数据库中的录入人脸比对
 //   2. 如果不匹配，转入 ALERT 状态
 //   3. ALERT 状态：每 3 秒抓拍一次，最多重试 5 次
-//   4. 如果 5 次都不匹配，确认非法用户，记录信息并安排 1 分钟后强制关机
+//   4. 如果 5 次都不匹配，确认非法用户，记录信息并立即锁屏
 //   5. 在任何时候如果匹配成功，回到 NORMAL 状态
 //   6. 合法用户回来时，如果之前有非法用户记录，弹出告警窗口
 
@@ -36,7 +36,7 @@ CMonitorManager::CMonitorManager()
     , m_nNormalInterval(DEFAULT_NORMAL_INTERVAL_SECONDS)
     , m_nAlertInterval(DEFAULT_ALERT_INTERVAL_SECONDS)
     , m_nAlertRetryCount(DEFAULT_ALERT_RETRY_COUNT)
-    , m_nShutdownDelay(DEFAULT_SHUTDOWN_DELAY_SECONDS)
+    , m_nLockDelaySeconds(DEFAULT_SHUTDOWN_DELAY_SECONDS)
 {
 }
 
@@ -69,7 +69,7 @@ BOOL CMonitorManager::Start()
     m_nNormalInterval = config.GetNormalIntervalSeconds();
     m_nAlertInterval = config.GetAlertIntervalSeconds();
     m_nAlertRetryCount = config.GetAlertRetryCount();
-    m_nShutdownDelay = config.GetShutdownDelaySeconds();
+    m_nLockDelaySeconds = config.GetShutdownDelaySeconds();  // 复用关机延迟配置作为锁屏延迟
 
     // 重置状态
     m_state = NORMAL;
@@ -101,8 +101,8 @@ void CMonitorManager::Stop()
         m_monitorThread.join();
     }
 
-    // 如果有关机计划，取消它
-    CancelShutdown();
+    // 如果有锁屏计划，取消它
+    CancelScheduleLock();
 }
 
 // ============================================================================
@@ -169,8 +169,8 @@ BOOL CMonitorManager::DoFaceCheck()
     cv::Rect faceRect;
     if (!camera.DetectFace(frame, faceRect))
     {
-        // 没有检测到人脸——无人使用电脑，保持正常状态
-        // 将抓取到的图像保存到程序同目录下的 image 文件夹中
+        // 没有检测到人脸——视为可疑情况，计入重试
+        // 将抓取到的图像保存到程序同目录下的 noface 文件夹中
         TCHAR szExePath[MAX_PATH] = { 0 };
         ::GetModuleFileName(nullptr, szExePath, MAX_PATH);
         CString strExeDir = szExePath;
@@ -182,8 +182,7 @@ BOOL CMonitorManager::DoFaceCheck()
         CString strImageDir;
         strImageDir.Format(_T("%s\\%s"), (LPCTSTR)strExeDir, FACEGUARD_NO_FACE_DIR);
 
-		// 没有检测到人脸图像保存路径
-		::SHCreateDirectoryEx(nullptr, strImageDir, nullptr);
+        ::SHCreateDirectoryEx(nullptr, strImageDir, nullptr);
 
         time_t tNow = time(nullptr);
         struct tm timeinfo;
@@ -195,6 +194,55 @@ BOOL CMonitorManager::DoFaceCheck()
         strFilePath.Format(_T("%s\\no_face_%s.jpg"), (LPCTSTR)strImageDir, szTimestamp);
 
         camera.SaveImage(frame, strFilePath);
+
+        // 进入 ALERT 状态并增加重试计数（与人脸不匹配相同处理）
+        if (m_state != ALERT)
+        {
+            m_state = ALERT;
+            m_nRetryCount = 0;
+            OutputDebugString(_T("MonitorManager: 未检测到人脸，进入 ALERT 状态\n"));
+        }
+
+        m_nRetryCount++;
+        m_bHadIntruder = TRUE;
+
+        // 通知 UI
+        if (m_hParentWnd != nullptr)
+        {
+            ::PostMessage(m_hParentWnd, WM_FACE_DETECTED, 0, m_nRetryCount);
+            ::PostMessage(m_hParentWnd, WM_MONITOR_UPDATE, (WPARAM)m_state, m_nRetryCount);
+        }
+        if (m_onFaceMismatch)
+        {
+            m_onFaceMismatch(m_nRetryCount);
+        }
+
+        // 检查是否达到最大重试次数
+        if (m_nRetryCount >= m_nAlertRetryCount)
+        {
+            // === 确认非法用户 ===
+            m_state = SHUTDOWN;
+
+            OutputDebugString(_T("MonitorManager: 连续未检测到人脸，确认异常！准备锁屏...\n"));
+
+            // 记录非法用户信息（使用当前帧作为证据）
+            LogIntruder(frame, TRUE);
+
+            // 通知 UI
+            if (m_hParentWnd != nullptr)
+            {
+                ::PostMessage(m_hParentWnd, WM_INTRUDER_ALERT, 1, 0);
+                m_nRetryCount = 0;
+            }
+            if (m_onIntruderConfirmed)
+            {
+                m_onIntruderConfirmed();
+            }
+
+            // 立即锁屏
+            LockWorkStation();
+        }
+
         return FALSE;
     }
 
@@ -204,7 +252,46 @@ BOOL CMonitorManager::DoFaceCheck()
 
     if (currentFeatures.empty())
     {
-        return FALSE;  // 特征提取失败
+        // 特征提取失败——视为可疑情况，计入重试
+        if (m_state != ALERT)
+        {
+            m_state = ALERT;
+            m_nRetryCount = 0;
+        }
+
+        m_nRetryCount++;
+
+        if (m_hParentWnd != nullptr)
+        {
+            ::PostMessage(m_hParentWnd, WM_FACE_DETECTED, 0, m_nRetryCount);
+            ::PostMessage(m_hParentWnd, WM_MONITOR_UPDATE, (WPARAM)m_state, m_nRetryCount);
+        }
+        if (m_onFaceMismatch)
+        {
+            m_onFaceMismatch(m_nRetryCount);
+        }
+
+        if (m_nRetryCount >= m_nAlertRetryCount)
+        {
+            m_state = SHUTDOWN;
+            OutputDebugString(_T("MonitorManager: 特征提取连续失败，准备锁屏...\n"));
+
+            // 记录非法用户信息
+            LogIntruder(frame, TRUE);
+
+            if (m_hParentWnd != nullptr)
+            {
+                ::PostMessage(m_hParentWnd, WM_INTRUDER_ALERT, 1, 0);
+                m_nRetryCount = 0;
+            }
+            if (m_onIntruderConfirmed)
+            {
+                m_onIntruderConfirmed();
+            }
+            LockWorkStation();
+        }
+
+        return FALSE;
     }
 
     // 获取当前登录用户的所有录入人脸特征
@@ -233,8 +320,10 @@ BOOL CMonitorManager::DoFaceCheck()
         // 将解密的特征数据还原为 cv::Mat
         // 特征维度：1 × (LBP_GRID_X * LBP_GRID_Y * 256)
         // 即 1 × (8 * 8 * 256) = 1 × 16384
-        cv::Mat storedFeatures(1, (int)(decryptedFeatures.size() / sizeof(float)), CV_32FC1,
-                               decryptedFeatures.data());
+        // 注意：必须复制数据，因为 decryptedFeatures 在循环迭代后会销毁
+        int nFeatureSize = (int)(decryptedFeatures.size() / sizeof(float));
+        cv::Mat storedFeatures(1, nFeatureSize, CV_32FC1);
+        memcpy(storedFeatures.data, decryptedFeatures.data(), decryptedFeatures.size());
 
         double dDistance = recognizer.CompareFaces(currentFeatures, storedFeatures);
 
@@ -249,7 +338,7 @@ BOOL CMonitorManager::DoFaceCheck()
     if (bMatched)
     {
         // === 人脸匹配：合法用户 ===
-        if (m_state == ALERT && m_bHadIntruder)
+        if ((m_state == ALERT || m_state == SHUTDOWN) && m_bHadIntruder)
         {
             // 之前有非法用户，现在合法用户回来了——通知 UI 弹出告警窗口
             OutputDebugString(_T("MonitorManager: 合法用户回归，之前有非法入侵记录\n"));
@@ -266,9 +355,10 @@ BOOL CMonitorManager::DoFaceCheck()
         // 重置状态
         m_state = NORMAL;
         m_nRetryCount = 0;
+        m_bHadIntruder = FALSE;
 
-        // 取消可能存在的关机计划
-        CancelShutdown();
+        // 取消可能存在的锁屏计划
+        CancelScheduleLock();
 
         // 通知 UI：人脸匹配成功
         if (m_hParentWnd != nullptr)
@@ -283,7 +373,7 @@ BOOL CMonitorManager::DoFaceCheck()
     else
     {
         // === 人脸不匹配：可能的非法用户 ===
-        if (m_state == NORMAL)
+        if (m_state != ALERT)
         {
             // 从不匹配的第一帧开始进入告警状态
             m_state = ALERT;
@@ -310,30 +400,30 @@ BOOL CMonitorManager::DoFaceCheck()
         {
             // === 确认非法用户 ===
             m_state = SHUTDOWN;
-            m_bRunning = FALSE;
 
-            OutputDebugString(_T("MonitorManager: 确认非法用户入侵！准备强制关机...\n"));
+            OutputDebugString(_T("MonitorManager: 确认非法用户入侵！准备锁屏...\n"));
 
-            // 记录非法用户信息
-            LogIntruder(faceROI, TRUE);
+            // 记录非法用户信息（保存完整画面）
+            LogIntruder(frame, TRUE);
 
             // 通知 UI：确认非法用户
             if (m_hParentWnd != nullptr)
             {
-                ::PostMessage(m_hParentWnd, WM_INTRUDER_ALERT, 1, 0);  // wParam=1 表示触发关机
+                ::PostMessage(m_hParentWnd, WM_INTRUDER_ALERT, 1, 0);  // wParam=1 表示触发锁屏
+                m_nRetryCount = 0;
             }
             if (m_onIntruderConfirmed)
             {
                 m_onIntruderConfirmed();
             }
 
-            // 安排强制关机
-            ScheduleShutdown();
+            // 立即锁屏
+            LockWorkStation();
         }
         else
         {
-            // 记录非法用户图像（非关机触发）
-            LogIntruder(faceROI, FALSE);
+            // 记录非法用户图像（非锁屏触发，保存完整画面）
+            LogIntruder(frame, FALSE);
         }
     }
 
@@ -341,73 +431,47 @@ BOOL CMonitorManager::DoFaceCheck()
 }
 
 // ============================================================================
-// 计划强制关机
-// 使用 InitiateSystemShutdownEx API，延迟指定秒数后关机
+// 锁定工作站
+// 使用 Windows API LockWorkStation() 立即锁定屏幕
 // ============================================================================
-void CMonitorManager::ScheduleShutdown()
+void CMonitorManager::LockWorkStation()
 {
-    // 获取关机权限
-    HANDLE hToken = nullptr;
-    if (::OpenProcessToken(::GetCurrentProcess(),
-                           TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
-    {
-        TOKEN_PRIVILEGES tkp;
-        ::LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid);
-        tkp.PrivilegeCount = 1;
-        tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-        ::AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, nullptr, nullptr);
-        ::CloseHandle(hToken);
-    }
-
-    // 获取关机原因消息
-    CString strMessage;
-    strMessage.Format(_T("FaceGuard 检测到非法用户操作，系统将在 %d 秒后自动关机。"), m_nShutdownDelay);
-
-    // 调用关机 API
-    // 参数：关机消息、超时（秒）、强制关闭应用程序、重启后不重启
-    BOOL bResult = ::InitiateSystemShutdownEx(
-        nullptr,                          // 本机
-        (LPTSTR)(LPCTSTR)strMessage,      // 关机消息
-        (DWORD)m_nShutdownDelay,          // 超时（秒）
-        TRUE,                             // 强制关闭应用程序
-        FALSE,                            // 不重启
-        SHTDN_REASON_FLAG_PLANNED        // 计划内关机
-    );
+    // 调用 Windows 锁屏 API
+    BOOL bResult = ::LockWorkStation();
 
     if (!bResult)
     {
         DWORD dwError = ::GetLastError();
         TCHAR szError[256] = { 0 };
-        _stprintf_s(szError, _T("关机调度失败，错误码: %lu"), dwError);
+        _stprintf_s(szError, _T("锁屏失败，错误码: %lu"), dwError);
         OutputDebugString(szError);
+    }
+    else
+    {
+        OutputDebugString(_T("MonitorManager: 工作站已锁定\n"));
     }
 }
 
 // ============================================================================
-// 取消关机计划
+// 安排延迟锁屏（预留接口，当前版本直接立即锁屏）
 // ============================================================================
-void CMonitorManager::CancelShutdown()
+void CMonitorManager::ScheduleLock(int nDelaySeconds)
 {
-    // 获取权限
-    HANDLE hToken = nullptr;
-    if (::OpenProcessToken(::GetCurrentProcess(),
-                           TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &hToken))
-    {
-        TOKEN_PRIVILEGES tkp;
-        ::LookupPrivilegeValue(nullptr, SE_SHUTDOWN_NAME, &tkp.Privileges[0].Luid);
-        tkp.PrivilegeCount = 1;
-        tkp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-        ::AdjustTokenPrivileges(hToken, FALSE, &tkp, 0, nullptr, nullptr);
-        ::CloseHandle(hToken);
-    }
+    // 当前实现：立即锁屏
+    LockWorkStation();
+}
 
-    // 取消本机上的关机计划
-    ::AbortSystemShutdown(nullptr);
+// ============================================================================
+// 取消延迟锁屏
+// ============================================================================
+void CMonitorManager::CancelScheduleLock()
+{
+    // 当前实现：无操作（立即锁屏无需取消）
 }
 
 // ============================================================================
 // 记录非法用户信息到数据库和文件
-// bShutdown - 是否触发了关机
+// bLockTriggered - 是否触发了锁屏
 // ============================================================================
 void CMonitorManager::LogIntruder(const cv::Mat& faceImage, BOOL bShutdown)
 {

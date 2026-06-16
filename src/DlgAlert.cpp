@@ -3,18 +3,22 @@
 
 #include "stdafx.h"
 #include "DlgAlert.h"
+#include "FaceGuard.h"
 #include "DatabaseManager.h"
 #include "resource.h"
 
 IMPLEMENT_DYNAMIC(CDlgAlert, CDialogEx)
 
 BEGIN_MESSAGE_MAP(CDlgAlert, CDialogEx)
+    ON_NOTIFY(NM_DBLCLK, IDC_LIST_INTRUDERS, &CDlgAlert::OnDblclkListIntruders)
+    ON_BN_CLICKED(IDC_BTN_VIEW_DETAIL, &CDlgAlert::OnBtnViewDetail)
     ON_BN_CLICKED(IDC_BTN_CLOSE_ALERT, &CDlgAlert::OnBtnClose)
     ON_BN_CLICKED(IDC_BTN_CLEAR_LOG, &CDlgAlert::OnBtnClearLog)
 END_MESSAGE_MAP()
 
 CDlgAlert::CDlgAlert(CWnd* pParent /*=nullptr*/)
     : CDialogEx(IDD_DLG_ALERT, pParent)
+    , m_pParentWnd(nullptr)
 {
 }
 
@@ -45,7 +49,7 @@ BOOL CDlgAlert::OnInitDialog()
     // 添加列
     m_listIntruders.InsertColumn(0, _T("序号"), LVCFMT_CENTER, 50);
     m_listIntruders.InsertColumn(1, _T("抓拍时间"), LVCFMT_LEFT, 160);
-    m_listIntruders.InsertColumn(2, _T("是否触发关机"), LVCFMT_CENTER, 90);
+    m_listIntruders.InsertColumn(2, _T("是否触发锁屏"), LVCFMT_CENTER, 90);
     m_listIntruders.InsertColumn(3, _T("缩略图路径"), LVCFMT_LEFT, 200);
 
     LoadIntruderRecords();
@@ -140,5 +144,67 @@ void CDlgAlert::OnBtnClearLog()
 // ============================================================================
 void CDlgAlert::OnBtnClose()
 {
-    EndDialog(IDOK);
+    DestroyWindow();
+}
+
+// ============================================================================
+// 窗口销毁后清理——通知父窗口指针已失效
+// ============================================================================
+void CDlgAlert::PostNcDestroy()
+{
+    // 通知父窗口对话框已销毁
+    if (m_pParentWnd != nullptr)
+    {
+        m_pParentWnd->ResetDlgAlert();
+    }
+
+    CDialogEx::PostNcDestroy();
+    delete this;
+}
+
+// ============================================================================
+// 刷新非法用户记录（公共方法，供外部调用）
+// ============================================================================
+void CDlgAlert::RefreshRecords()
+{
+    // 清空现有列表项
+    m_listIntruders.DeleteAllItems();
+
+    // 重新加载记录
+    LoadIntruderRecords();
+
+    // 如果窗口最小化，恢复显示
+    if (IsIconic())
+    {
+        ShowWindow(SW_RESTORE);
+    }
+
+    // 确保窗口在前台（SetForegroundWindow 在 Windows 上不可靠，用 SetWindowPos 替代）
+    SetWindowPos(&wndTopMost, 0, 0, 0, 0,
+        SWP_NOMOVE | SWP_NOSIZE | SWP_SHOWWINDOW);
+    SetForegroundWindow();
+}
+
+// ============================================================================
+// 双击列表项——用默认图片查看器打开图像
+// ============================================================================
+void CDlgAlert::OnDblclkListIntruders(NMHDR* pNMHDR, LRESULT* pResult)
+{
+    LPNMITEMACTIVATE pNMItemActivate = reinterpret_cast<LPNMITEMACTIVATE>(pNMHDR);
+    *pResult = 0;
+
+    int nItem = pNMItemActivate->iItem;
+    if (nItem < 0)
+        return;
+
+    CString strPath = m_listIntruders.GetItemText(nItem, 3);
+
+    if (!strPath.IsEmpty() && ::PathFileExists(strPath))
+    {
+        ::ShellExecute(nullptr, _T("open"), strPath, nullptr, nullptr, SW_SHOW);
+    }
+    else
+    {
+        AfxMessageBox(_T("图像文件不存在或已被删除。"), MB_ICONWARNING);
+    }
 }

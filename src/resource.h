@@ -48,6 +48,7 @@
 
 // Control IDs - Alert Dialog
 #define IDC_LIST_INTRUDERS              2301
+#define IDC_BTN_VIEW_DETAIL             2305
 #define IDC_BTN_CLOSE_ALERT             2302
 #define IDC_BTN_CLEAR_LOG               2303
 #define IDC_STATIC_ALERT_INFO           2304
